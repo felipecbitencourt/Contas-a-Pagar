@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curso | Jornada do Contas a Pagar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/curso.css">
+</head>
+<body>
+  <div class="curso-shell">
+    <header class="curso-header">
+      <div class="header-left">
+        <button id="btn-back-menu" class="btn-header" type="button">← Voltar ao menu</button>
+        <button id="btn-toggle-sidebar" class="btn-header" type="button">☰ Navegação</button>
+      </div>
+
+      <div class="header-center">
+        <div class="progress-wrap">
+          <progress id="course-progress" max="100" value="0"></progress>
+          <span id="progress-text">0%</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-settings-placeholder" class="btn-header" type="button">⚙️ Configurações</button>
+      </div>
+    </header>
+
+    <div class="curso-layout">
+      <aside id="curso-sidebar" class="curso-sidebar" aria-label="Navegação do curso">
+        <div class="sidebar-title">Jornada do Contas a Pagar</div>
+        <nav id="curso-menu" class="curso-menu"></nav>
+      </aside>
+
+      <main class="curso-content" id="curso-content" tabindex="-1">
+        <div class="content-badge" id="content-badge">Módulo 1 · Slide 3</div>
+        <h1 id="content-title">O que é o Contas a Pagar</h1>
+        <div id="content-body" class="content-body"></div>
+      </main>
+    </div>
+  </div>
+
+  <script src="./assets/curso.js"></script>
+</body>
+</html>
