@@ -313,7 +313,6 @@ function App() {
       <footer>
         <div>© 2026 Grupo Zaffari · Plataforma Transformação</div>
         <div className="f-right">
-          <span>Responsável: Kévellin</span>
           <span>ADM · Contas a Pagar</span>
         </div>
       </footer>

@@ -241,7 +241,6 @@ body[data-density="compact"] .cta-final{padding:60px 40px;margin:40px 48px 60px}
 .coin-stack{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   width:260px;height:260px;
-  animation:slowSpin calc(30s / var(--motion, 1)) linear infinite;
 }
 .coin-ring{
   position:absolute;inset:0;border-radius:50%;border:1px dashed var(--border-strong);
@@ -260,7 +259,6 @@ body[data-density="compact"] .cta-final{padding:60px 40px;margin:40px 48px 60px}
     0 20px 60px oklch(0.55 0.12 80 / 0.4),
     0 0 80px oklch(0.72 0.14 85 / 0.3);
   display:grid;place-items:center;
-  animation:coinFloat calc(4s / var(--motion, 1)) ease-in-out infinite;
 }
 .coin-center::before{
   content:'';position:absolute;inset:16px;border-radius:50%;
@@ -269,9 +267,14 @@ body[data-density="compact"] .cta-final{padding:60px 40px;margin:40px 48px 60px}
 .coin-center .rs{
   font-family:'Space Grotesk';font-size:56px;font-weight:700;color:oklch(0.35 0.08 70);
   text-shadow:1px 1px 0 oklch(0.95 0.08 90 / 0.5);
+  animation:rsWiggle calc(4.4s / var(--motion, 1)) ease-in-out infinite;
 }
-@keyframes coinFloat{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-10px)}}
-@keyframes slowSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes rsWiggle{
+  0%,100%{transform:rotate(0deg) translateY(0)}
+  25%{transform:rotate(-1.2deg) translateY(-1px)}
+  50%{transform:rotate(1deg) translateY(0)}
+  75%{transform:rotate(-.8deg) translateY(1px)}
+}
 
 /* Orbiting chips */
 .chip{
@@ -286,16 +289,16 @@ body[data-density="compact"] .cta-final{padding:60px 40px;margin:40px 48px 60px}
 }
 .chip svg{width:26px;height:26px}
 .chip .lbl{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);font-size:9px;color:var(--ink-dim);white-space:nowrap;letter-spacing:0.05em}
-.chip.c1{transform:rotate(0deg) translateX(170px) rotate(0deg);animation:orbit1 calc(20s / var(--motion, 1)) linear infinite}
-.chip.c2{transform:rotate(72deg) translateX(170px) rotate(-72deg);animation:orbit2 calc(20s / var(--motion, 1)) linear infinite}
-.chip.c3{transform:rotate(144deg) translateX(170px) rotate(-144deg);animation:orbit3 calc(20s / var(--motion, 1)) linear infinite}
-.chip.c4{transform:rotate(216deg) translateX(170px) rotate(-216deg);animation:orbit4 calc(20s / var(--motion, 1)) linear infinite}
-.chip.c5{transform:rotate(288deg) translateX(170px) rotate(-288deg);animation:orbit5 calc(20s / var(--motion, 1)) linear infinite}
-@keyframes orbit1{from{transform:rotate(0deg) translateX(170px) rotate(0deg)}to{transform:rotate(360deg) translateX(170px) rotate(-360deg)}}
-@keyframes orbit2{from{transform:rotate(72deg) translateX(170px) rotate(-72deg)}to{transform:rotate(432deg) translateX(170px) rotate(-432deg)}}
-@keyframes orbit3{from{transform:rotate(144deg) translateX(170px) rotate(-144deg)}to{transform:rotate(504deg) translateX(170px) rotate(-504deg)}}
-@keyframes orbit4{from{transform:rotate(216deg) translateX(170px) rotate(-216deg)}to{transform:rotate(576deg) translateX(170px) rotate(-576deg)}}
-@keyframes orbit5{from{transform:rotate(288deg) translateX(170px) rotate(-288deg)}to{transform:rotate(648deg) translateX(170px) rotate(-648deg)}}
+.chip.c1{transform:rotate(0deg) translateX(190px) rotate(0deg);animation:orbit1 calc(22s / var(--motion, 1)) linear infinite}
+.chip.c2{transform:rotate(72deg) translateX(190px) rotate(-72deg);animation:orbit2 calc(22s / var(--motion, 1)) linear infinite}
+.chip.c3{transform:rotate(144deg) translateX(190px) rotate(-144deg);animation:orbit3 calc(22s / var(--motion, 1)) linear infinite}
+.chip.c4{transform:rotate(216deg) translateX(190px) rotate(-216deg);animation:orbit4 calc(22s / var(--motion, 1)) linear infinite}
+.chip.c5{transform:rotate(288deg) translateX(190px) rotate(-288deg);animation:orbit5 calc(22s / var(--motion, 1)) linear infinite}
+@keyframes orbit1{from{transform:rotate(0deg) translateX(190px) rotate(0deg)}to{transform:rotate(360deg) translateX(190px) rotate(-360deg)}}
+@keyframes orbit2{from{transform:rotate(72deg) translateX(190px) rotate(-72deg)}to{transform:rotate(432deg) translateX(190px) rotate(-432deg)}}
+@keyframes orbit3{from{transform:rotate(144deg) translateX(190px) rotate(-144deg)}to{transform:rotate(504deg) translateX(190px) rotate(-504deg)}}
+@keyframes orbit4{from{transform:rotate(216deg) translateX(190px) rotate(-216deg)}to{transform:rotate(576deg) translateX(190px) rotate(-576deg)}}
+@keyframes orbit5{from{transform:rotate(288deg) translateX(190px) rotate(-288deg)}to{transform:rotate(648deg) translateX(190px) rotate(-648deg)}}
 
 /* Floating documents */
 .doc{
@@ -548,7 +551,7 @@ footer .f-right{display:flex;gap:24px}
 
     <div class="hero-stats">
       <div class="stat">
-        <div class="n" data-count="56">00<span class="unit">min</span></div>
+        <div class="n" data-count="1">00<span class="unit">Hr 30 min</span></div>
         <div class="l">Duração total</div>
       </div>
       <div class="stat">
@@ -605,16 +608,16 @@ footer .f-right{display:flex;gap:24px}
           <span class="lbl">PIX</span>
         </div>
         <div class="chip c3">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-          <span class="lbl">NF-e</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h16"/></svg>
+          <span class="lbl">TED</span>
         </div>
         <div class="chip c4">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <span class="lbl">APROVADO</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
+          <span class="lbl">DDA</span>
         </div>
         <div class="chip c5">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M2 11h20"/><path d="M6 3v4M18 3v4"/></svg>
-          <span class="lbl">TED</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+          <span class="lbl">NF-e</span>
         </div>
       </div>
 
@@ -804,7 +807,6 @@ footer .f-right{display:flex;gap:24px}
 <footer>
   <div>© 2026 Grupo Zaffari · Plataforma Transformação</div>
   <div class="f-right">
-    <span>Responsável: Kévellin</span>
     <span>ADM · Contas a Pagar</span>
   </div>
 </footer>
