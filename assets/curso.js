@@ -388,12 +388,65 @@ const sidebarEl = document.getElementById("curso-sidebar")
 const contentEl = document.getElementById("curso-content")
 const shellEl = document.querySelector(".curso-shell")
 const interativos = window.CursoInterativos
+const prevPageSideBtn = document.getElementById("btn-prev-page-side")
+const nextPageSideBtn = document.getElementById("btn-next-page-side")
+
+function randomBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function applyModuleBackgroundTheme(moduleName) {
+  const normalized = (moduleName || "").toLowerCase()
+  if (normalized.includes("módulo 1") || normalized.includes("modulo 1")) {
+    document.body.dataset.moduleTheme = "m1"
+    return
+  }
+  if (normalized.includes("módulo 2") || normalized.includes("modulo 2")) {
+    document.body.dataset.moduleTheme = "m2"
+    return
+  }
+  if (normalized.includes("módulo 3") || normalized.includes("modulo 3")) {
+    document.body.dataset.moduleTheme = "m3"
+    return
+  }
+  document.body.dataset.moduleTheme = "m1"
+}
+
+function applyRandomBackgroundDispersion() {
+  const rootStyle = document.documentElement.style
+  rootStyle.setProperty("--bg-p1x", `${randomBetween(8, 32)}%`)
+  rootStyle.setProperty("--bg-p1y", `${randomBetween(6, 28)}%`)
+  rootStyle.setProperty("--bg-p2x", `${randomBetween(66, 92)}%`)
+  rootStyle.setProperty("--bg-p2y", `${randomBetween(64, 92)}%`)
+  rootStyle.setProperty("--bg-p3x", `${randomBetween(38, 62)}%`)
+  rootStyle.setProperty("--bg-p3y", `${randomBetween(32, 68)}%`)
+  rootStyle.setProperty("--grid-size", `${randomBetween(54, 84)}px`)
+  rootStyle.setProperty("--orb-shift-x", `${randomBetween(-36, 36)}px`)
+  rootStyle.setProperty("--orb-shift-y", `${randomBetween(-24, 24)}px`)
+}
+
+function updateSideNavOffsets() {
+  const rootStyle = document.documentElement.style
+  const isMobile = window.matchMedia("(max-width: 980px)").matches
+  if (isMobile) {
+    rootStyle.setProperty("--left-nav-offset", "14px")
+    rootStyle.setProperty("--right-nav-offset", "14px")
+    return
+  }
+
+  const isSidebarCollapsed = shellEl?.classList.contains("sidebar-collapsed")
+  rootStyle.setProperty("--left-nav-offset", isSidebarCollapsed ? "22px" : "318px")
+  rootStyle.setProperty("--right-nav-offset", "22px")
+}
 
 function goToIndex(nextIndex) {
   if (nextIndex < 0 || nextIndex >= coursePages.length) return
   currentIndex = nextIndex
+  applyRandomBackgroundDispersion()
+  updateSideNavOffsets()
   renderContent()
   renderMenu()
+  contentEl?.scrollTo({ top: 0, behavior: "smooth" })
 }
 
 function goToNextPage() {
@@ -438,6 +491,9 @@ function renderMenu() {
 function renderContent() {
   const page = coursePages[currentIndex]
   if (!page) return
+  applyModuleBackgroundTheme(page.module)
+  const isFirstPage = currentIndex === 0
+  const isLastPage = currentIndex === coursePages.length - 1
 
   // Re-dispara animação de entrada do título a cada slide
   titleEl.style.animation = "none"
@@ -485,6 +541,8 @@ function renderContent() {
   const progress = Math.round(((currentIndex + 1) / coursePages.length) * 100)
   progressEl.value = progress
   progressTextEl.textContent = `${progress}%`
+  if (prevPageSideBtn) prevPageSideBtn.disabled = isFirstPage
+  if (nextPageSideBtn) nextPageSideBtn.disabled = isLastPage
 }
 
 function renderSlide3(page) {
@@ -520,14 +578,38 @@ function renderSlide3(page) {
     { id: "tributos",     icon: "bank",      title: "Tributos",     subtitle: "Exigências fiscais e cumprimento de prazos." },
     { id: "controle",     icon: "clipboard", title: "Controle",     subtitle: "Organização e governança financeira." },
   ]
-  const current = details[slide3Focus] ?? details.fornecedores
+  const orderedIds = cards.map((card) => card.id)
+  const fallbackIndex = Math.max(orderedIds.indexOf("fornecedores"), 0)
 
-  const trackHtml = trackSteps
-    .map((step, i) =>
-      `<span class="cp-track-item${slide3Focus === step.activeFor ? " is-active" : ""}">${interativos?.renderIcon(step.icon, "cp-track-emoji") ?? ""}${step.label}</span>` +
-      (i < trackSteps.length - 1 ? `<span class="cp-track-arrow">→</span>` : "")
-    )
-    .join("")
+  function getSlide3CardState(id) {
+    const currentIndex = Math.max(orderedIds.indexOf(id), fallbackIndex)
+    const currentId = orderedIds[currentIndex] || "fornecedores"
+    const nextId = orderedIds[(currentIndex + 1) % orderedIds.length]
+    const currentCard = cards.find((card) => card.id === currentId) ?? cards[0]
+    const currentStep = trackSteps.find((step) => step.activeFor === currentId) ?? trackSteps[0]
+    const current = details[currentId] ?? details.fornecedores
+    return { currentIndex, currentId, nextId, currentCard, currentStep, current }
+  }
+
+  function buildSlide3CardHtml(state) {
+    return `
+      <div class="cp-process-meta">
+        <span class="cp-process-step">${interativos?.renderIcon(state.currentStep.icon, "cp-track-emoji") ?? ""}${state.currentStep.label}</span>
+        <span class="cp-process-count">${state.currentIndex + 1}/${orderedIds.length}</span>
+      </div>
+      <div class="cp-process-header">
+        <h4>${state.currentCard.title}</h4>
+        <p>${state.currentCard.subtitle}</p>
+      </div>
+      <div class="cp-process-detail">
+        <h5>${state.current.title}</h5>
+        <p>${state.current.text}</p>
+      </div>
+    `
+  }
+
+  const initialState = getSlide3CardState(slide3Focus)
+  slide3Focus = initialState.currentId
 
   bodyEl.innerHTML = `
     <section class="cp-intro">
@@ -548,32 +630,56 @@ function renderSlide3(page) {
       </div>
     </section>
 
-    <div class="cp-track">${trackHtml}</div>
+    ${
+      interativos?.renderImagemLegenda({
+        src: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80",
+        alt: "Profissional analisando indicadores financeiros em notebook.",
+        caption: "Rotina analítica do Contas a Pagar no dia a dia.",
+      }) ?? ""
+    }
+    ${
+      interativos?.renderCuriosidadeBox({
+        title: "Curiosidade do setor",
+        text: "Em operações de alto volume, pequenas inconsistências de cadastro ou vencimento podem gerar impactos em cadeia. Por isso, o setor atua preventivamente antes da execução bancária.",
+        icon: "trace",
+      }) ?? ""
+    }
+    ${
+      interativos?.renderMiniGraficoBarras({
+        title: "Focos operacionais recorrentes (ilustrativo)",
+        bars: [
+          { label: "Conferência de dados", value: 88, valueLabel: "88%" },
+          { label: "Programação de pagamentos", value: 74, valueLabel: "74%" },
+          { label: "Conformidade e controles", value: 92, valueLabel: "92%" },
+        ],
+      }) ?? ""
+    }
 
-    ${interativos?.renderCardsInterativos({ cards, activeId: slide3Focus, dataAttr: "data-s3" }) ?? ""}
-    ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
-    <div class="pill-row">
-      <span class="pill">${interativos?.renderIcon("folder", "pill-emoji") ?? ""}Organização</span>
-      <span class="pill">${interativos?.renderIcon("target", "pill-emoji") ?? ""}Precisão</span>
-      <span class="pill">${interativos?.renderIcon("clock", "pill-emoji") ?? ""}Prazo</span>
-      <span class="pill">${interativos?.renderIcon("trace", "pill-emoji") ?? ""}Rastreabilidade</span>
+    <div class="cp-card-carousel">
+      <article class="cp-process-card is-entering" data-s3-card>${buildSlide3CardHtml(initialState)}</article>
+      <div class="cp-card-actions">
+        <button type="button" class="btn-dda btn-dda-next" data-s3-next>Próximo card</button>
+      </div>
     </div>
-    <p class="hint">Clique nos blocos para explorar as frentes principais do Contas a Pagar.</p>
   `
 
-  interativos?.bindSelectableCards({
-    container: bodyEl,
-    dataAttr: "data-s3",
-    details,
-    onTrack: (newId, container) => {
-      const trackItems = container.querySelectorAll(".cp-track-item")
-      trackSteps.forEach((step, i) =>
-        trackItems[i]?.classList.toggle("is-active", step.activeFor === newId)
-      )
-    },
-    onChange: (next) => {
-      slide3Focus = next || "fornecedores"
-    },
+  bodyEl.querySelector("[data-s3-card]")?.addEventListener("animationend", (event) => {
+    event.currentTarget?.classList.remove("is-entering")
+  })
+
+  bodyEl.querySelector("[data-s3-next]")?.addEventListener("click", () => {
+    const cardEl = bodyEl.querySelector("[data-s3-card]")
+    if (!cardEl) return
+
+    cardEl.classList.add("is-leaving")
+    window.setTimeout(() => {
+      const nextState = getSlide3CardState(slide3Focus)
+      slide3Focus = nextState.nextId
+      const updatedState = getSlide3CardState(slide3Focus)
+      cardEl.innerHTML = buildSlide3CardHtml(updatedState)
+      cardEl.classList.remove("is-leaving")
+      cardEl.classList.add("is-entering")
+    }, 180)
   })
 }
 
@@ -627,11 +733,53 @@ function renderSlide4(page) {
       </div>
       <div class="cp-panorama-side">${panoramaHtml}</div>
     </section>
+    <section class="content-split">
+      <div class="content-split-col">
+        ${
+          interativos?.renderImagemLegenda({
+            src: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+            alt: "Conjunto de prédios corporativos representando empresas do grupo.",
+            caption: "Empresas e operações com dinâmicas financeiras distintas.",
+          }) ?? ""
+        }
+      </div>
+      <div class="content-split-col">
+        ${
+          interativos?.renderGraficoPizza({
+            title: "Composição típica de demandas por frente",
+            legendTitle: "Leitura para priorização de rotina",
+            segments: [
+              { label: "Varejo", value: 42, valueLabel: "42%", color: "#57d9d0" },
+              { label: "Atacado", value: 24, valueLabel: "24%", color: "#6fc28f" },
+              { label: "Empreendimentos", value: 18, valueLabel: "18%", color: "#7f9bf4" },
+              { label: "Controladas", value: 16, valueLabel: "16%", color: "#e0b46a" },
+            ],
+          }) ?? ""
+        }
+        ${
+          interativos?.renderCuriosidadeBox({
+            title: "Curiosidade de abrangência",
+            text: "Mesmo em empresas do mesmo grupo, regras de caixa, calendário e tipo de despesa podem exigir trilhas de aprovação diferentes.",
+            icon: "building",
+          }) ?? ""
+        }
+      </div>
+    </section>
     <div class="mini-stats">
       <div class="mini-stat"><span class="label">Frentes de negócio</span><span class="value">4+</span></div>
       <div class="mini-stat"><span class="label">Modelo financeiro</span><span class="value">Caixa próprio</span></div>
       <div class="mini-stat"><span class="label">Foco do setor</span><span class="value">Padronização</span></div>
     </div>
+    ${
+      interativos?.renderTimelineCompacta({
+        title: "Leitura rápida da operação",
+        items: [
+          { title: "Segmentação", text: "Cada frente de negócio impõe regras específicas de documento e vencimento." },
+          { title: "Governança", text: "Controles padronizados sustentam consistência entre empresas." },
+          { title: "Consolidação", text: "A visão central garante previsibilidade do fluxo financeiro." },
+        ],
+      }) ?? ""
+    }
     ${interativos?.renderCardsInterativos({ cards, activeId: slide4Focus, dataAttr: "data-s4" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
   `
@@ -678,7 +826,49 @@ function renderSlide5(page) {
 
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Dimensão do trabalho", lead: page.body[0] }) ?? ""}
+    ${
+      interativos?.renderCuriosidadeBox({
+        title: "Você sabia?",
+        text: "Em estruturas multiempresa, o ganho de eficiência vem da repetição de padrões operacionais, não da simplificação das regras de negócio.",
+        icon: "chart",
+      }) ?? ""
+    }
+    ${
+      interativos?.renderImagemLegenda({
+        src: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80",
+        alt: "Painel com indicadores e gráficos financeiros.",
+        caption: "Escala e complexidade exigem leitura rápida de indicadores.",
+      }) ?? ""
+    }
     ${interativos?.renderMetricRow({ metrics }) ?? ""}
+    <section class="content-split">
+      <div class="content-split-col">
+        ${
+          interativos?.renderGraficoTempo({
+            title: "Progressão de esforço ao longo do ciclo mensal",
+            points: [
+              { period: "Semana 1", value: 48, valueLabel: "48 pts" },
+              { period: "Semana 2", value: 62, valueLabel: "62 pts" },
+              { period: "Semana 3", value: 79, valueLabel: "79 pts" },
+              { period: "Semana 4", value: 91, valueLabel: "91 pts" },
+            ],
+            conclusion: "O esforço cresce no fechamento, reforçando a necessidade de padronização antecipada.",
+          }) ?? ""
+        }
+      </div>
+      <div class="content-split-col">
+        ${
+          interativos?.renderMiniGraficoBarras({
+            title: "Composição ilustrativa da complexidade operacional",
+            bars: [
+              { label: "Volume de documentos", value: 90, valueLabel: "alto" },
+              { label: "Regras por empresa", value: 72, valueLabel: "médio/alto" },
+              { label: "Integração entre áreas", value: 84, valueLabel: "alto" },
+            ],
+          }) ?? ""
+        }
+      </div>
+    </section>
     ${interativos?.renderCardsInterativos({ cards, activeId: slide5Focus, dataAttr: "data-s5" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
   `
@@ -734,8 +924,25 @@ function renderSlide6(page) {
 
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Conhecendo as empresas", lead: page.body[0] }) ?? ""}
+    ${
+      interativos?.renderImagemLegenda({
+        src: "https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=1200&q=80",
+        alt: "Mapa de cidade com diferentes polos empresariais.",
+        caption: "Cada frente de negócio contribui com necessidades próprias de pagamento.",
+      }) ?? ""
+    }
     ${interativos?.renderCardsInterativos({ cards, activeId: slide6Focus, dataAttr: "data-s6" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
+    ${
+      interativos?.renderTimelineCompacta({
+        title: "Como ler esta etapa",
+        items: [
+          { title: "Selecione uma frente", text: "Use os cards para focar no perfil operacional de cada negócio." },
+          { title: "Observe o impacto", text: "Cada área altera o tipo de validação e priorização no contas a pagar." },
+          { title: "Conecte com governança", text: "Padronização reduz risco e facilita auditoria entre empresas." },
+        ],
+      }) ?? ""
+    }
     <p class="hint">${page.body[1]}</p>
   `
 
@@ -781,16 +988,45 @@ function renderSlide7(page) {
   ]
 
   const current = details[slide7Focus] ?? details.mm
+  const refreshSlide7Supplement = (id) => {
+    const data = details[id] ?? details.mm
+    const usageEl = bodyEl.querySelector("[data-s7-usage]")
+    const riskEl = bodyEl.querySelector("[data-s7-risk]")
+    const checkEl = bodyEl.querySelector("[data-s7-check]")
+    if (usageEl) usageEl.textContent = data.usage
+    if (riskEl) riskEl.textContent = data.risk
+    if (checkEl) checkEl.textContent = data.check
+  }
 
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Entradas do processo", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    ${
+      interativos?.renderTimelineCompacta({
+        title: "Linha de leitura dos módulos",
+        items: [
+          { title: "MM", text: "Recebe e organiza informações de compras e recebimentos." },
+          { title: "FI", text: "Consolida impacto contábil e financeiro do compromisso." },
+          { title: "RE", text: "Estrutura pagamentos ligados a contratos imobiliários." },
+        ],
+      }) ?? ""
+    }
+    ${
+      interativos?.renderMiniGraficoBarras({
+        title: "Distribuição ilustrativa de uso dos módulos",
+        bars: [
+          { label: "MM", value: 85, valueLabel: "85%" },
+          { label: "FI", value: 78, valueLabel: "78%" },
+          { label: "RE", value: 46, valueLabel: "46%" },
+        ],
+      }) ?? ""
+    }
     ${interativos?.renderCardsInterativos({ cards, activeId: slide7Focus, dataAttr: "data-s7" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
     <div class="pill-row">
-      <span class="pill">${interativos?.renderIcon("target", "pill-emoji") ?? ""}${current.usage}</span>
-      <span class="pill">${interativos?.renderIcon("shield", "pill-emoji") ?? ""}${current.risk}</span>
-      <span class="pill">${interativos?.renderIcon("check", "pill-emoji") ?? ""}${current.check}</span>
+      <span class="pill">${interativos?.renderIcon("target", "pill-emoji") ?? ""}<span data-s7-usage>${current.usage}</span></span>
+      <span class="pill">${interativos?.renderIcon("shield", "pill-emoji") ?? ""}<span data-s7-risk>${current.risk}</span></span>
+      <span class="pill">${interativos?.renderIcon("check", "pill-emoji") ?? ""}<span data-s7-check>${current.check}</span></span>
     </div>
     <h4 class="section-sub">Retenção rápida por módulo SAP</h4>
     ${
@@ -820,7 +1056,7 @@ function renderSlide7(page) {
     details,
     onChange: (next) => {
       slide7Focus = next || "mm"
-      renderSlide7(page)
+      refreshSlide7Supplement(slide7Focus)
     },
   })
 }
@@ -878,14 +1114,27 @@ function renderSlide8(page) {
   ]
 
   const current = steps.find((step) => step.id === slide8Focus) ?? steps[0]
+  const hotspots = [
+    { id: "controle", label: "Ponto de controle", title: "Controle", text: "A cada transição de etapa, o setor valida consistência documental e aderência ao processo." },
+    { id: "risco", label: "Risco", title: "Risco operacional", text: "Falhas no início do fluxo tendem a aumentar esforço de correção nas fases de execução e conciliação." },
+    { id: "tempo", label: "Tempo", title: "Tempo de resposta", text: "Antecipar conferências melhora previsibilidade e reduz pagamentos em cima do vencimento." },
+  ]
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Macrofluxo do processo", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    ${
+      interativos?.renderImagemLegenda({
+        src: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80",
+        alt: "Equipe acompanhando fluxo de trabalho em quadro visual.",
+        caption: "Macrofluxo como trilha integrada de controle financeiro.",
+      }) ?? ""
+    }
     ${interativos?.renderStepperFluxo({ steps, activeId: current.id, dataAttr: "data-s8" }) ?? ""}
     ${interativos?.renderPainelDetalhe({
       title: current.title,
       text: `${current.detail} Risco principal: ${current.risk}`,
     }) ?? ""}
+    ${interativos?.renderHotspotPainel({ title: "Pontos de leitura rápida", points: hotspots, dataAttr: "data-s8-hot" }) ?? ""}
     <p class="hint">Use as setas do teclado para navegar pelas etapas do fluxo.</p>
   `
 
@@ -897,6 +1146,7 @@ function renderSlide8(page) {
       renderContent()
     },
   })
+  interativos?.bindHotspotPainel({ container: bodyEl, dataAttr: "data-s8-hot", points: hotspots })
 }
 
 function renderSlide9(page) {
@@ -962,6 +1212,13 @@ function renderSlide9(page) {
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Etapas do macrofluxo", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    ${
+      interativos?.renderCuriosidadeBox({
+        title: "Curiosidade de sequenciamento",
+        text: "Em processos financeiros, a qualidade da entrada (pedido, recebimento e lançamento) impacta diretamente a velocidade de pagamento e a conciliação final.",
+        icon: "trace",
+      }) ?? ""
+    }
     ${interativos?.renderStepperFluxo({ steps, activeId: current.id, dataAttr: "data-s9" }) ?? ""}
     ${interativos?.renderPainelDetalhe({
       title: current.title,
@@ -1013,6 +1270,20 @@ function renderSlide10(page) {
   ]
 
   const current = details[slide10Focus] ?? details.deposito
+  const refreshSlide10Supplement = (id) => {
+    const data = details[id] ?? details.deposito
+    const methodsWrap = bodyEl.querySelector("[data-s10-methods]")
+    const hintEl = bodyEl.querySelector("[data-s10-hint]")
+    if (methodsWrap) {
+      methodsWrap.innerHTML = data.methods
+        .map(
+          (method) =>
+            `<span class="pill">${interativos?.renderIcon("check", "pill-emoji") ?? ""}${method}</span>`,
+        )
+        .join("")
+    }
+    if (hintEl) hintEl.textContent = data.when
+  }
   const methodsHtml = current.methods
     .map(
       (method) =>
@@ -1023,10 +1294,46 @@ function renderSlide10(page) {
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Formas de pagamento", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    <section class="content-split">
+      <div class="content-split-col">
+        ${
+          interativos?.renderGraficoPizza({
+            title: "Distribuição ilustrativa por categoria",
+            legendTitle: "Referência para priorização do dia",
+            segments: [
+              { label: "Depósito", value: 48, valueLabel: "48%", color: "#57d9d0" },
+              { label: "Cobrança", value: 37, valueLabel: "37%", color: "#7f9bf4" },
+              { label: "Antecipação", value: 15, valueLabel: "15%", color: "#e0b46a" },
+            ],
+          }) ?? ""
+        }
+      </div>
+      <div class="content-split-col">
+        ${
+          interativos?.renderGraficoTempo({
+            title: "Janela de programação por modalidade",
+            points: [
+              { period: "D-3", value: 30, valueLabel: "baixa" },
+              { period: "D-2", value: 55, valueLabel: "média" },
+              { period: "D-1", value: 82, valueLabel: "alta" },
+              { period: "D0", value: 100, valueLabel: "crítica" },
+            ],
+            conclusion: "Quanto mais próximo do vencimento, maior o risco de exceções operacionais.",
+          }) ?? ""
+        }
+      </div>
+    </section>
+    ${
+      interativos?.renderImagemLegenda({
+        src: "https://images.unsplash.com/photo-1604594849809-dfedbc827105?auto=format&fit=crop&w=1200&q=80",
+        alt: "Mãos segurando cartão e celular para pagamento digital.",
+        caption: "A modalidade de pagamento orienta conferências e controles específicos.",
+      }) ?? ""
+    }
     ${interativos?.renderCardsInterativos({ cards, activeId: slide10Focus, dataAttr: "data-s10" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
-    <div class="pill-row">${methodsHtml}</div>
-    <p class="hint">${current.when}</p>
+    <div class="pill-row" data-s10-methods>${methodsHtml}</div>
+    <p class="hint" data-s10-hint>${current.when}</p>
     ${
       interativos?.renderReveal({
         label: "Ver dica de categorização na operação",
@@ -1041,7 +1348,7 @@ function renderSlide10(page) {
     details,
     onChange: (next) => {
       slide10Focus = next || "deposito"
-      renderSlide10(page)
+      refreshSlide10Supplement(slide10Focus)
     },
   })
   interativos?.bindReveal(bodyEl)
@@ -1085,14 +1392,29 @@ function renderSlide11(page) {
   ]
 
   const current = details[slide11Focus] ?? details.ted
+  const refreshSlide11Supplement = (id) => {
+    const data = details[id] ?? details.ted
+    const usoEl = bodyEl.querySelector("[data-s11-uso]")
+    if (usoEl) usoEl.textContent = data.uso
+  }
 
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Detalhamento das modalidades", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    ${
+      interativos?.renderTimelineCompacta({
+        title: "Roteiro de decisão rápido",
+        items: [
+          { title: "Tipo de documento", text: "Identifique se é transferência direta, título bancário ou cobrança recorrente." },
+          { title: "Prazo e urgência", text: "Modalidades instantâneas e programadas atendem necessidades distintas." },
+          { title: "Validação final", text: "Confirme beneficiário, valor e competência antes da liberação." },
+        ],
+      }) ?? ""
+    }
     ${interativos?.renderCardsInterativos({ cards, activeId: slide11Focus, dataAttr: "data-s11" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
     <div class="pill-row">
-      <span class="pill">${interativos?.renderIcon("target", "pill-emoji") ?? ""}${current.uso}</span>
+      <span class="pill">${interativos?.renderIcon("target", "pill-emoji") ?? ""}<span data-s11-uso>${current.uso}</span></span>
       <span class="pill">${interativos?.renderIcon("check", "pill-emoji") ?? ""}A modalidade deve seguir o tipo de documento recebido.</span>
     </div>
     ${
@@ -1128,7 +1450,7 @@ function renderSlide11(page) {
     details,
     onChange: (next) => {
       slide11Focus = next || "ted"
-      renderSlide11(page)
+      refreshSlide11Supplement(slide11Focus)
     },
   })
   interativos?.bindCompareTabs(bodyEl)
@@ -1161,6 +1483,23 @@ function renderSlide12(page) {
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Risco Sacado", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    ${
+      interativos?.renderImagemLegenda({
+        src: "https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=1200&q=80",
+        alt: "Pessoa analisando contrato digital em tablet.",
+        caption: "Risco sacado conecta estratégia financeira, banco e fornecedor.",
+      }) ?? ""
+    }
+    ${
+      interativos?.renderTimelineCompacta({
+        title: "Sequência operacional da antecipação",
+        items: [
+          { title: "Negociação", text: "Grupo e banco alinham condições operacionais do programa." },
+          { title: "Intermediação", text: "Banco realiza pagamento ao fornecedor antecipante." },
+          { title: "Conclusão", text: "Fornecedor confirma operação na plataforma, sem alterar fluxo padrão da empresa." },
+        ],
+      }) ?? ""
+    }
     ${interativos?.renderCardsInterativos({ cards, activeId: slide12Focus, dataAttr: "data-s12" }) ?? ""}
     ${interativos?.renderPainelDetalhe({ title: current.title, text: current.text }) ?? ""}
     <div class="pill-row">
@@ -1175,7 +1514,6 @@ function renderSlide12(page) {
     details,
     onChange: (next) => {
       slide12Focus = next || "zaffari"
-      renderSlide12(page)
     },
   })
 }
@@ -1198,11 +1536,28 @@ function renderSlide13(page) {
   bodyEl.innerHTML = `
     ${interativos?.renderHeroBloco({ kicker: "Conclusão do módulo", lead: page.body[0] }) ?? ""}
     <p>${page.body[1]}</p>
+    ${
+      interativos?.renderMiniGraficoBarras({
+        title: "Mapa visual do que você consolidou",
+        bars: [
+          { label: "Estrutura do setor", value: 100, valueLabel: "ok" },
+          { label: "Macrofluxo", value: 100, valueLabel: "ok" },
+          { label: "Formas de pagamento", value: 100, valueLabel: "ok" },
+        ],
+      }) ?? ""
+    }
     <div class="pill-row">${checklistHtml}</div>
     ${interativos?.renderPainelDetalhe({
       title: "Próximo passo",
       text: "Avançar para o Módulo 2 para aprofundar cada etapa do fluxo do Contas a Pagar.",
     }) ?? ""}
+    ${
+      interativos?.renderCuriosidadeBox({
+        title: "Próxima etapa da jornada",
+        text: "No Módulo 2, o foco sai do conceito e entra nas tratativas reais de preparação, efetivação e conciliação no fluxo operacional.",
+        icon: "target",
+      }) ?? ""
+    }
     <h4 class="section-sub">Checkpoint rápido</h4>
     ${
       interativos?.renderQuizCheckpoint({
@@ -1426,13 +1781,24 @@ document.getElementById("btn-toggle-sidebar")?.addEventListener("click", () => {
   const mobile = window.matchMedia("(max-width: 980px)").matches
   if (mobile) {
     sidebarEl?.classList.toggle("open")
+    updateSideNavOffsets()
     return
   }
   shellEl?.classList.toggle("sidebar-collapsed")
+  updateSideNavOffsets()
 })
 
 document.getElementById("btn-settings-placeholder")?.addEventListener("click", () => {
   window.alert("Menu de configurações será implementado na próxima etapa.")
+})
+prevPageSideBtn?.addEventListener("click", () => {
+  goToPrevPage()
+})
+nextPageSideBtn?.addEventListener("click", () => {
+  goToNextPage()
+})
+window.addEventListener("resize", () => {
+  updateSideNavOffsets()
 })
 
 document.addEventListener("keydown", (event) => {
@@ -1484,5 +1850,7 @@ document.addEventListener("keydown", (event) => {
 })
 
 renderMenu()
+applyRandomBackgroundDispersion()
+updateSideNavOffsets()
 renderContent()
 contentEl?.focus()

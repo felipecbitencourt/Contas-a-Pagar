@@ -87,6 +87,158 @@ const CursoInterativos = {
     return `<div class="metric-row">${metricsHtml}</div>`
   },
 
+  renderCuriosidadeBox({ title = "Curiosidade", text, icon = "note" }) {
+    return `
+      <aside class="curiosity-box">
+        <div class="curiosity-head">
+          ${this.renderIcon(icon, "curiosity-icon")}
+          <h4>${title}</h4>
+        </div>
+        <p>${text}</p>
+      </aside>
+    `
+  },
+
+  renderImagemLegenda({ src, alt, caption, credit = "Imagem ilustrativa (placeholder)." }) {
+    return `
+      <figure class="image-card">
+        <img src="${src}" alt="${alt}" loading="lazy" />
+        <figcaption>
+          <strong>${caption}</strong>
+          <span>${credit}</span>
+        </figcaption>
+      </figure>
+    `
+  },
+
+  renderMiniGraficoBarras({ title, bars }) {
+    const safeBars = bars || []
+    const max = Math.max(...safeBars.map((b) => b.value), 1)
+    const barsHtml = safeBars
+      .map((bar) => {
+        const pct = Math.max(4, Math.round((bar.value / max) * 100))
+        return `
+          <div class="mini-bar-row">
+            <span class="mini-bar-label">${bar.label}</span>
+            <div class="mini-bar-track"><span class="mini-bar-fill" style="width:${pct}%"></span></div>
+            <span class="mini-bar-value">${bar.valueLabel ?? bar.value}</span>
+          </div>
+        `
+      })
+      .join("")
+    return `
+      <section class="mini-chart">
+        <h4>${title}</h4>
+        <div class="mini-chart-bars">${barsHtml}</div>
+      </section>
+    `
+  },
+
+  renderGraficoTempo({ title, points, conclusion }) {
+    const safePoints = points || []
+    const max = Math.max(...safePoints.map((p) => p.value), 1)
+    const rows = safePoints
+      .map((point) => {
+        const pct = Math.max(8, Math.round((point.value / max) * 100))
+        return `
+          <div class="time-chart-row">
+            <span class="time-chart-period">${point.period}</span>
+            <div class="time-chart-track">
+              <span class="time-chart-fill" style="width:${pct}%"></span>
+            </div>
+            <span class="time-chart-value">${point.valueLabel ?? point.value}</span>
+          </div>
+        `
+      })
+      .join("")
+    return `
+      <section class="time-chart">
+        <h4>${title}</h4>
+        <div class="time-chart-grid">${rows}</div>
+        ${conclusion ? `<p class="time-chart-note">${conclusion}</p>` : ""}
+      </section>
+    `
+  },
+
+  renderGraficoPizza({ title, segments, legendTitle }) {
+    const safeSegments = segments || []
+    const total = safeSegments.reduce((acc, s) => acc + s.value, 0) || 1
+    let cursor = 0
+    const gradient = safeSegments
+      .map((segment) => {
+        const start = Math.round((cursor / total) * 360)
+        cursor += segment.value
+        const end = Math.round((cursor / total) * 360)
+        return `${segment.color} ${start}deg ${end}deg`
+      })
+      .join(", ")
+    const legend = safeSegments
+      .map(
+        (segment) => `
+          <li>
+            <span class="pie-dot" style="background:${segment.color}"></span>
+            <span>${segment.label}</span>
+            <strong>${segment.valueLabel ?? segment.value}</strong>
+          </li>
+        `,
+      )
+      .join("")
+    return `
+      <section class="pie-chart-card">
+        <h4>${title}</h4>
+        <div class="pie-chart-wrap">
+          <div class="pie-chart-donut" style="--pie-gradient: conic-gradient(${gradient});" aria-hidden="true"></div>
+          <div class="pie-chart-legend">
+            ${legendTitle ? `<p>${legendTitle}</p>` : ""}
+            <ul>${legend}</ul>
+          </div>
+        </div>
+      </section>
+    `
+  },
+
+  renderTimelineCompacta({ title, items }) {
+    const rows = (items || [])
+      .map(
+        (item) => `
+          <li class="timeline-item">
+            <span class="timeline-dot" aria-hidden="true"></span>
+            <div>
+              <strong>${item.title}</strong>
+              <p>${item.text}</p>
+            </div>
+          </li>
+        `,
+      )
+      .join("")
+    return `
+      <section class="timeline-compact">
+        <h4>${title}</h4>
+        <ul>${rows}</ul>
+      </section>
+    `
+  },
+
+  renderHotspotPainel({ title, points, dataAttr }) {
+    const list = (points || [])
+      .map(
+        (p, idx) =>
+          `<button type="button" class="hotspot-btn${idx === 0 ? " is-active" : ""}" ${dataAttr}="${p.id}">${p.label}</button>`,
+      )
+      .join("")
+    const first = points?.[0]
+    return `
+      <section class="hotspot-panel">
+        <h4>${title}</h4>
+        <div class="hotspot-list">${list}</div>
+        <article class="hotspot-detail">
+          <h5>${first?.title ?? ""}</h5>
+          <p>${first?.text ?? ""}</p>
+        </article>
+      </section>
+    `
+  },
+
   renderPainelDetalhe({ title, text }) {
     return `
       <article class="detail-panel">
@@ -499,6 +651,23 @@ const CursoInterativos = {
       })
     })
     apply()
+  },
+
+  bindHotspotPainel({ container, dataAttr, points }) {
+    const selector = `[${dataAttr}]`
+    const buttons = [...container.querySelectorAll(selector)]
+    const detail = container.querySelector(".hotspot-detail")
+    if (!buttons.length || !detail) return
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextId = button.getAttribute(dataAttr)
+        const point = points.find((p) => p.id === nextId)
+        buttons.forEach((b) => b.classList.toggle("is-active", b === button))
+        if (!point) return
+        detail.querySelector("h5").textContent = point.title
+        detail.querySelector("p").textContent = point.text
+      })
+    })
   },
 }
 
